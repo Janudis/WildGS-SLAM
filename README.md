@@ -81,6 +81,10 @@ pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https
 pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-2.1.0+cu118.html
 pip3 install -U xformers==0.0.22.post7+cu118 --index-url https://download.pytorch.org/whl/cu118
 ```
+4. Install setuptools with a specific version. The latest version will cause some errors for steps 5 and 7. You can also skip this step and do step 5 and 7 without edit mode (remove ``-e``), see [issue](https://github.com/GradientSpaces/WildGS-SLAM/issues/50)
+```bash
+pip install setuptools==78.1.1
+```
 5. Install the remaining dependencies.
 ```bash
 python -m pip install -e thirdparty/lietorch/
