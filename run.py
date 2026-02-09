@@ -22,7 +22,9 @@ if __name__ == '__main__':
     parser.add_argument('config', type=str, help='Path to config file.')
     args = parser.parse_args()
 
-    torch.multiprocessing.set_start_method('spawn')
+    # torch.multiprocessing.set_start_method('spawn')
+    if torch.multiprocessing.get_start_method(allow_none=True) is None:
+        torch.multiprocessing.set_start_method("spawn")
 
     cfg = config.load_config(args.config)
     setup_seed(cfg['setup_seed'])

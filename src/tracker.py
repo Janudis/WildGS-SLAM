@@ -6,7 +6,8 @@ from colorama import Fore, Style
 from multiprocessing.connection import Connection
 from src.utils.datasets import BaseDataset
 from src.utils.Printer import Printer,FontColor
-class Tracker:
+# class Tracker:
+class DroidTracker:
     def __init__(self, slam, pipe:Connection):
         self.cfg = slam.cfg
         self.device = self.cfg['device']
@@ -86,6 +87,14 @@ class Tracker:
         self.pipe.send({"is_keyframe":True, "video_idx":None,
                         "timestamp":None, "just_initialized": False, 
                         "end":True})
-
-
-                
+    
+    
+def make_tracker(slam, pipe):
+    t = slam.cfg['tracking'].get('tracker_type', 'droid').lower()
+    if t == 'droid':
+        return DroidTracker(slam, pipe)
+    elif t == 'dpvo':
+        from src.tracker_dpv import DPVTracker
+        return DPVTracker(slam, pipe)
+    else:
+        raise ValueError(f"Unknown tracker_type: {t}")                

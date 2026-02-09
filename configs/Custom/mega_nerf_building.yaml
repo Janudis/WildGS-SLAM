@@ -1,0 +1,48 @@
+inherit_from: ./configs/wildgs_slam.yaml
+scene: mega_nerf_building_seq1
+
+dataset: 'wild_slam_iphone'   # no GT poses, monocular RGB only
+
+fast_mode: True
+gui: True
+mapping:
+  online_plotting: True
+  
+data:
+  input_folder: ./datasets/MegaNeRF_building_seq1
+  output: ./output/MegaNeRF_building_seq1
+
+cam:
+  # Original Mega-NeRF Building resolution
+  H: 3456        # height
+  W: 4608        # width
+
+  # Intrinsics from your Photo-SLAM Mega-NeRF config
+  fx: 2981.55127
+  fy: 2981.55127
+  cx: 2304.0
+  cy: 1728.0
+
+  # # Working resolution for WildGS (downsampled for memory)
+  # H_out: 864     # ~1/4 of 3456
+  # W_out: 1152    # ~1/4 of 4608
+
+  # H_out: 240
+  # W_out: 400
+  H_out: 216
+  W_out: 288
+
+  # No cropping / distortion for Mega-NeRF
+  # H_edge: 0
+  # W_edge: 0
+  # distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+
+# mapping:
+#   Training:
+#     # Trade-off rgb vs depth loss (like in custom_template.yaml)
+#     alpha: 0.8
+
+# uncertainty_params:
+#   # Mega-NeRF depth prior will be noisy (outdoor & aerial),
+#   # so reduce the influence of depth or even set to 0.0 if unstable
+#   uncer_depth_mult: 0.1

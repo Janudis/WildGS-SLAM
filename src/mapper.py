@@ -30,7 +30,7 @@ from thirdparty.gaussian_splatting.utils.graphics_utils import (
     getProjectionMatrix2,
     getWorld2View2,
 )
-from src.depth_video import DepthVideo
+# from src.depth_video import DepthVideo
 from src.utils.datasets import get_dataset, load_metric_depth, load_img_feature
 from src.utils.common import as_intrinsics_matrix, setup_seed
 from src.utils.Printer import Printer, FontColor
@@ -44,17 +44,232 @@ from src.utils.camera_utils import Camera
 from src.utils.dyn_uncertainty import mapping_utils as map_utils
 from src.utils.dyn_uncertainty.median_filter import MedianPool2d
 from src.utils.plot_utils import create_gif_from_directory
-from src.gui import gui_utils
+# from src.gui import gui_utils
 
 class Mapper(object):
     """
     Mapper thread.
-
     """
+    # def __init__(
+    #     self, slam, pipe: Connection, uncer_network: Optional[nn.Module] = None, 
+    #     q_main2vis: Optional[mp.Queue] = None, q_vis2main: Optional[mp.Queue] = None
+    # ):
+    #     # setup seed
+    #     setup_seed(slam.cfg["setup_seed"])
+    #     torch.autograd.set_detect_anomaly(True)
+
+    #     self.config = slam.cfg
+    #     self.printer: Printer = slam.printer
+    #     self.pipe = pipe
+    #     self.verbose = slam.verbose
+    #     self.device = torch.device(self.config["device"])
+    #     self.video: DepthVideo = slam.video
+
+    #     # Set gaussian model
+    #     self.model_params = munchify(self.config["mapping"]["model_params"])
+    #     self.opt_params = munchify(self.config["mapping"]["opt_params"])
+    #     self.pipeline_params = munchify(self.config["mapping"]["pipeline_params"])
+    #     use_spherical_harmonics = self.config["mapping"]["Training"][
+    #         "spherical_harmonics"
+    #     ]
+    #     self.model_params.sh_degree = 3 if use_spherical_harmonics else 0
+    #     self.gaussians = GaussianModel(self.model_params.sh_degree, config=self.config)
+    #     self.gaussians.init_lr(6.0)
+    #     self.gaussians.training_setup(self.opt_params)
+
+    #     # Set background color
+    #     bg_color = [0, 0, 0]
+    #     self.background = torch.tensor(
+    #         bg_color, dtype=torch.float32, device=self.device
+    #     )
+
+    #     # Set hyperparams
+    #     self._set_hyperparams()
+
+    #     # Set frame reader (where we get the input dataset)
+    #     self.frame_reader = get_dataset(self.config, device=self.device)
+    #     self.intrinsics = as_intrinsics_matrix(self.frame_reader.get_intrinsic()).to(
+    #         self.device
+    #     )
+
+    #     # Prepare projection matrix
+    #     if self.config["mapping"]["full_resolution"]:
+    #         intrinsic_full = self.frame_reader.get_intrinsic_full_resol()
+    #         fx, fy, cx, cy = [intrinsic_full[i].item() for i in range(4)]
+    #         W_out, H_out = self.frame_reader.W_out_full, self.frame_reader.H_out_full
+    #     else:
+    #         fx, fy, cx, cy = (
+    #             self.frame_reader.fx,
+    #             self.frame_reader.fy,
+    #             self.frame_reader.cx,
+    #             self.frame_reader.cy,
+    #         )
+    #         W_out, H_out = self.frame_reader.W_out, self.frame_reader.H_out
+
+    #     projection_matrix = getProjectionMatrix2(
+    #         znear=0.01,
+    #         zfar=100.0,
+    #         fx=fx,
+    #         fy=fy,
+    #         cx=cx,
+    #         cy=cy,
+    #         W=W_out,
+    #         H=H_out,
+    #     ).transpose(0, 1)
+    #     self.projection_matrix = projection_matrix.to(device=self.device)
+
+    #     # Setup for uncertainty-aware mapping
+    #     self.vis_uncertainty_online = False
+    #     self.uncer_params = munchify(self.config["mapping"]["uncertainty_params"])
+    #     self.uncertainty_aware = self.uncer_params["activate"]
+    #     if self.uncertainty_aware:
+    #         self.uncer_network = uncer_network
+    #         self.uncer_optimizer = torch.optim.Adam(
+    #             self.uncer_network.parameters(),
+    #             lr=self.uncer_params["lr"],
+    #             weight_decay=self.uncer_params["weight_decay"],
+    #         )
+
+    #         self.vis_uncertainty_online = self.uncer_params["vis_uncertainty_online"]
+
+    #     # Setup queue object for gui communication
+    #     self.q_main2vis = q_main2vis
+    #     self.q_vis2main = q_vis2main
+    #     self.pause = False
+
+    # def run(self):
+    #     """
+    #     Trigger mapping process, get estimated pose and depth from tracking process,
+    #     send continue signal to tracking process when the mapping of the current frame finishes.
+    #     """
+    #     # Initialize list to keep track of Keyframes
+    #     # In short, for any idx "i",
+    #     # self.video.timestamp[video_idx[i]] = self.frame_idxs[i]
+    #     self.frame_idxs = []  # the indices of keyframes in the original frame sequence
+    #     self.video_idxs = []  # keyframe numbering (I sometimes call it kf_idx)
+
+    #     while True:
+    #         if self.config['gui']:
+    #             if self.q_vis2main.empty():
+    #                 if self.pause:
+    #                     continue
+    #             else:
+    #                 data_vis2main = self.q_vis2main.get()
+    #                 self.pause = data_vis2main.flag_pause
+    #                 if self.pause:
+    #                     self.printer.print("You have paused the process", FontColor.MAPPER)
+    #                     continue
+    #                 else:
+    #                     self.printer.print("You have resume the process", FontColor.MAPPER)
+
+    #         frame_info = self.pipe.recv()
+    #         frame_idx, video_idx = frame_info["timestamp"], frame_info["video_idx"]
+    #         is_init, is_finished = frame_info["just_initialized"], frame_info["end"]
+
+    #         if is_finished:
+    #             self.printer.print("Done with Mapping and Tracking", FontColor.MAPPER)
+    #             break
+
+    #         if self.verbose:
+    #             self.printer.print(f"\nMapping Frame {frame_idx} ...", FontColor.MAPPER)
+
+    #         if is_init:
+    #             self.printer.print("Initializing the mapping", FontColor.MAPPER)
+    #             self.initialize_mapper(video_idx)
+    #             self.pipe.send("continue")
+    #             continue
+
+    #         viewpoint, invalid = self._get_viewpoint(video_idx, frame_idx)
+
+    #         if invalid:
+    #             # Only happens when not using metric depth for tracking regularization
+    #             self.printer.print("WARNING: Too few valid pixels from droid depth", FontColor.MAPPER)
+    #             self.is_kf[video_idx] = False
+    #             self.pipe.send("continue")
+    #             continue  # too few valid pixels from droid depth
+            
+    #         # Update the map if depth/pose of any keyframe has been updated
+    #         self._update_keyframes_from_frontend()
+    #         self.frame_idxs.append(frame_idx)
+    #         self.video_idxs.append(video_idx)
+
+    #         # We need to render from the current pose to obtain the "n_touched" variable
+    #         # which is used later on
+    #         render_pkg = render(
+    #             viewpoint, self.gaussians, self.pipeline_params, self.background
+    #         )
+    #         curr_visibility = (render_pkg["n_touched"] > 0).long()
+
+    #         # Always create kf
+    #         self.cameras[video_idx] = viewpoint
+    #         self.current_window, _ = self._add_to_window(
+    #             video_idx,
+    #             curr_visibility,
+    #             self.occ_aware_visibility,
+    #             self.current_window,
+    #         )
+    #         self.is_kf[video_idx] = True
+    #         self.depth_dict[video_idx] = torch.tensor(viewpoint.depth).to(self.device)
+    #         self.frame_count_log[video_idx] = 0
+
+    #         self.gaussians.extend_from_pcd_seq(
+    #             viewpoint, kf_id=video_idx, init=False, depthmap=viewpoint.depth
+    #         )
+
+    #         opt_params = []
+    #         for cam_idx in range(len(self.current_window)):
+    #             if self.current_window[cam_idx] == 0:
+    #                 # Do not add first frame for exposure optimization
+    #                 continue
+    #             viewpoint = self.cameras[self.current_window[cam_idx]]
+    #             opt_params.append(
+    #                 {
+    #                     "params": [viewpoint.exposure_a],
+    #                     "lr": 0.01,
+    #                     "name": "exposure_a_{}".format(viewpoint.uid),
+    #                 }
+    #             )
+    #             opt_params.append(
+    #                 {
+    #                     "params": [viewpoint.exposure_b],
+    #                     "lr": 0.01,
+    #                     "name": "exposure_b_{}".format(viewpoint.uid),
+    #                 }
+    #             )
+    #         self.keyframe_optimizers = torch.optim.Adam(opt_params)
+
+    #         with Lock():
+    #             if self.config['fast_mode']:
+    #                 # We are in fast mode,
+    #                 # update map and uncertainty MLP every 4 key frames
+    #                 if video_idx % 4 == 0:
+    #                     gaussian_split = self.map_opt_online(
+    #                         self.current_window, iters=self.mapping_itr_num
+    #                     )
+    #                 else:
+    #                     self._update_occ_aware_visibility(self.current_window)
+    #             else:
+    #                 gaussian_split = self.map_opt_online(
+    #                     self.current_window, iters=self.mapping_itr_num
+    #                 )
+
+    #             if gaussian_split:
+    #                 # do one more iteration after densify and prune
+    #                 self.map_opt_online(self.current_window, iters=1)
+    #         torch.cuda.empty_cache()
+
+    #         if self.config['gui']:
+    #             self._send_to_gui(video_idx)
+
+    #         self.pipe.send("continue")
 
     def __init__(
-        self, slam, pipe: Connection, uncer_network: Optional[nn.Module] = None, 
-        q_main2vis: Optional[mp.Queue] = None, q_vis2main: Optional[mp.Queue] = None
+        self,
+        slam,
+        pipe: Connection,
+        uncer_network: Optional[nn.Module] = None,
+        q_main2vis: Optional[mp.Queue] = None,
+        q_vis2main: Optional[mp.Queue] = None,
     ):
         # setup seed
         setup_seed(slam.cfg["setup_seed"])
@@ -65,36 +280,60 @@ class Mapper(object):
         self.pipe = pipe
         self.verbose = slam.verbose
         self.device = torch.device(self.config["device"])
-        self.video: DepthVideo = slam.video
 
-        # Set gaussian model
+        # -------------------------
+        # tracker mode (droid vs dpv)
+        # -------------------------
+        self.tracker_type = self.config["tracking"].get("tracker_type", "droid").lower()
+        self.is_droid = self.tracker_type == "droid"
+        self.is_dpv = self.tracker_type == "dpv"
+
+        # Mapper consumes slam.video which can be:
+        # - DROID: DepthVideo
+        # - DPV:   PatchGraph (with mapper buffers enabled)
+        self.video = slam.video
+
+        # -------------------------
+        # Gaussian model setup (unchanged)
+        # -------------------------
         self.model_params = munchify(self.config["mapping"]["model_params"])
         self.opt_params = munchify(self.config["mapping"]["opt_params"])
         self.pipeline_params = munchify(self.config["mapping"]["pipeline_params"])
-        use_spherical_harmonics = self.config["mapping"]["Training"][
-            "spherical_harmonics"
-        ]
+
+        use_spherical_harmonics = self.config["mapping"]["Training"]["spherical_harmonics"]
         self.model_params.sh_degree = 3 if use_spherical_harmonics else 0
+
         self.gaussians = GaussianModel(self.model_params.sh_degree, config=self.config)
         self.gaussians.init_lr(6.0)
         self.gaussians.training_setup(self.opt_params)
 
-        # Set background color
+        # background
         bg_color = [0, 0, 0]
-        self.background = torch.tensor(
-            bg_color, dtype=torch.float32, device=self.device
-        )
+        self.background = torch.tensor(bg_color, dtype=torch.float32, device=self.device)
 
-        # Set hyperparams
+        # hyperparams
         self._set_hyperparams()
 
-        # Set frame reader (where we get the input dataset)
-        self.frame_reader = get_dataset(self.config, device=self.device)
-        self.intrinsics = as_intrinsics_matrix(self.frame_reader.get_intrinsic()).to(
-            self.device
-        )
+        # -------------------------
+        # Frame reader (dataset)
+        #
+        # IMPORTANT for DPV: reuse slam.stream so mapper & tracker see the same
+        # preprocessing (undistortion/cropping/resizing).
+        #
+        # DROID behavior remains effectively the same; for safety we keep fallback.
+        # -------------------------
+        if hasattr(slam, "stream") and slam.stream is not None:
+            self.frame_reader = slam.stream
+        else:
+            # legacy fallback (should not happen in your SLAM wrapper)
+            self.frame_reader = get_dataset(self.config, device=self.device)
 
-        # Prepare projection matrix
+        # base intrinsics matrix (used by viewpoint / projection)
+        self.intrinsics = as_intrinsics_matrix(self.frame_reader.get_intrinsic()).to(self.device)
+
+        # -------------------------
+        # Prepare projection matrix (unchanged)
+        # -------------------------
         if self.config["mapping"]["full_resolution"]:
             intrinsic_full = self.frame_reader.get_intrinsic_full_resol()
             fx, fy, cx, cy = [intrinsic_full[i].item() for i in range(4)]
@@ -120,10 +359,13 @@ class Mapper(object):
         ).transpose(0, 1)
         self.projection_matrix = projection_matrix.to(device=self.device)
 
-        # Setup for uncertainty-aware mapping
+        # -------------------------
+        # Uncertainty-aware mapping (unchanged)
+        # -------------------------
         self.vis_uncertainty_online = False
         self.uncer_params = munchify(self.config["mapping"]["uncertainty_params"])
         self.uncertainty_aware = self.uncer_params["activate"]
+
         if self.uncertainty_aware:
             self.uncer_network = uncer_network
             self.uncer_optimizer = torch.optim.Adam(
@@ -131,10 +373,14 @@ class Mapper(object):
                 lr=self.uncer_params["lr"],
                 weight_decay=self.uncer_params["weight_decay"],
             )
-
             self.vis_uncertainty_online = self.uncer_params["vis_uncertainty_online"]
+        else:
+            self.uncer_network = None
+            self.uncer_optimizer = None
 
-        # Setup queue object for gui communication
+        # -------------------------
+        # GUI comms (unchanged)
+        # -------------------------
         self.q_main2vis = q_main2vis
         self.q_vis2main = q_vis2main
         self.pause = False
@@ -144,14 +390,11 @@ class Mapper(object):
         Trigger mapping process, get estimated pose and depth from tracking process,
         send continue signal to tracking process when the mapping of the current frame finishes.
         """
-        # Initialize list to keep track of Keyframes
-        # In short, for any idx "i",
-        # self.video.timestamp[video_idx[i]] = self.frame_idxs[i]
-        self.frame_idxs = []  # the indices of keyframes in the original frame sequence
-        self.video_idxs = []  # keyframe numbering (I sometimes call it kf_idx)
+        self.frame_idxs = []  # indices of keyframes in original frame sequence
+        self.video_idxs = []  # keyframe numbering (video_idx)
 
         while True:
-            if self.config['gui']:
+            if self.config["gui"]:
                 if self.q_vis2main.empty():
                     if self.pause:
                         continue
@@ -184,25 +427,27 @@ class Mapper(object):
             viewpoint, invalid = self._get_viewpoint(video_idx, frame_idx)
 
             if invalid:
-                # Only happens when not using metric depth for tracking regularization
-                self.printer.print("WARNING: Too few valid pixels from droid depth", FontColor.MAPPER)
+                # In DROID: can happen if too few valid pixels (depending on metric_depth_reg / mask)
+                # In DPV: can happen if mono prior is empty or mismatched resolution
+                self.printer.print(
+                    "WARNING: Too few valid depth pixels for mapping at this keyframe.",
+                    FontColor.MAPPER,
+                )
                 self.is_kf[video_idx] = False
                 self.pipe.send("continue")
-                continue  # too few valid pixels from droid depth
-            
-            # Update the map if depth/pose of any keyframe has been updated
+                continue
+
+            # update map if frontend updated pose/depth of previous keyframes
             self._update_keyframes_from_frontend()
+
             self.frame_idxs.append(frame_idx)
             self.video_idxs.append(video_idx)
 
-            # We need to render from the current pose to obtain the "n_touched" variable
-            # which is used later on
-            render_pkg = render(
-                viewpoint, self.gaussians, self.pipeline_params, self.background
-            )
+            # render from current pose for visibility / touched
+            render_pkg = render(viewpoint, self.gaussians, self.pipeline_params, self.background)
             curr_visibility = (render_pkg["n_touched"] > 0).long()
 
-            # Always create kf
+            # Always create keyframe
             self.cameras[video_idx] = viewpoint
             self.current_window, _ = self._add_to_window(
                 video_idx,
@@ -218,49 +463,36 @@ class Mapper(object):
                 viewpoint, kf_id=video_idx, init=False, depthmap=viewpoint.depth
             )
 
+            # exposure optimizer (unchanged)
             opt_params = []
             for cam_idx in range(len(self.current_window)):
                 if self.current_window[cam_idx] == 0:
-                    # Do not add first frame for exposure optimization
                     continue
-                viewpoint = self.cameras[self.current_window[cam_idx]]
+                vp = self.cameras[self.current_window[cam_idx]]
                 opt_params.append(
-                    {
-                        "params": [viewpoint.exposure_a],
-                        "lr": 0.01,
-                        "name": "exposure_a_{}".format(viewpoint.uid),
-                    }
+                    {"params": [vp.exposure_a], "lr": 0.01, "name": f"exposure_a_{vp.uid}"}
                 )
                 opt_params.append(
-                    {
-                        "params": [viewpoint.exposure_b],
-                        "lr": 0.01,
-                        "name": "exposure_b_{}".format(viewpoint.uid),
-                    }
+                    {"params": [vp.exposure_b], "lr": 0.01, "name": f"exposure_b_{vp.uid}"}
                 )
             self.keyframe_optimizers = torch.optim.Adam(opt_params)
 
             with Lock():
-                if self.config['fast_mode']:
-                    # We are in fast mode,
-                    # update map and uncertainty MLP every 4 key frames
+                if self.config["fast_mode"]:
                     if video_idx % 4 == 0:
-                        gaussian_split = self.map_opt_online(
-                            self.current_window, iters=self.mapping_itr_num
-                        )
+                        gaussian_split = self.map_opt_online(self.current_window, iters=self.mapping_itr_num)
                     else:
                         self._update_occ_aware_visibility(self.current_window)
+                        gaussian_split = False
                 else:
-                    gaussian_split = self.map_opt_online(
-                        self.current_window, iters=self.mapping_itr_num
-                    )
+                    gaussian_split = self.map_opt_online(self.current_window, iters=self.mapping_itr_num)
 
                 if gaussian_split:
-                    # do one more iteration after densify and prune
                     self.map_opt_online(self.current_window, iters=1)
+
             torch.cuda.empty_cache()
 
-            if self.config['gui']:
+            if self.config["gui"]:
                 self._send_to_gui(video_idx)
 
             self.pipe.send("continue")
@@ -298,55 +530,187 @@ class Mapper(object):
         self.deform_gaussians = self.config["mapping"]["deform_gaussians"]
         self.online_plotting = self.config["mapping"]["online_plotting"]
 
+    # def _get_viewpoint(self, video_idx: int, frame_idx: int) -> Tuple[Camera, bool]:
+    #     """
+    #     Create and initialize a Camera object for a given frame.
+
+    #     Args:
+    #         video_idx (int): Index in the video class (keyframe idx).
+    #         frame_idx (int): Index in the original frame sequences.
+
+    #     Returns:
+    #         Tuple[Camera, bool]: Initialized Camera object and an invalid flag.
+    #     """
+    #     # Load color image based on resolution configuration
+    #     if self.config["mapping"]["full_resolution"]:
+    #         color = (
+    #             self.frame_reader.get_color_full_resol(frame_idx)
+    #             .to(self.device)
+    #             .squeeze()
+    #         )
+    #         load_feature_suffix = "full"
+    #     else:
+    #         color = self.frame_reader.get_color(frame_idx).to(self.device).squeeze()
+    #         load_feature_suffix = ""
+
+    #     # Load metric depth
+    #     metric_depth = load_metric_depth(frame_idx, self.save_dir).to(self.device)
+
+    #     # Load features if uncertainty-aware
+    #     if self.uncertainty_aware:
+    #         features = load_img_feature(
+    #             frame_idx, self.save_dir, suffix=load_feature_suffix
+    #         ).to(self.device)
+    #     else:
+    #         features = None
+
+    #     # Get estimated depth and camera pose
+    #     est_depth, est_w2c, invalid = self.get_w2c_and_depth(
+    #         video_idx, frame_idx, metric_depth
+    #     )
+
+    #     # Prepare data dictionary for Camera initialization
+    #     camera_data = {
+    #         "idx": video_idx,
+    #         "gt_color": color,
+    #         "est_depth": est_depth.cpu().numpy(),
+    #         "est_pose": est_w2c,
+    #         "features": features,
+    #     }
+
+    #     # Initialize Camera object
+    #     viewpoint = Camera.init_from_dataset(
+    #         self.frame_reader,
+    #         camera_data,
+    #         self.projection_matrix,
+    #         full_resol=self.config["mapping"]["full_resolution"],
+    #     )
+
+    #     # Update camera pose and compute gradient mask
+    #     # The Camera class is based on MonoGS and
+    #     # init_from_dataset function only updates the ground truth pose
+    #     viewpoint.update_RT(viewpoint.R_gt, viewpoint.T_gt)
+    #     viewpoint.compute_grad_mask(self.config)
+
+    #     return viewpoint, invalid
+
+    # def _update_keyframes_from_frontend(self):
+    #     """
+    #     Update keyframe information based on the latest frontend data.
+    #     This includes updating camera poses, depths, and mapping points (deform gaussians)
+    #     for all keyframes.
+    #     """
+    #     for keyframe_idx, frame_idx in zip(self.video_idxs, self.frame_idxs):
+    #         # Get updated pose and depth
+    #         if self.video.metric_depth_reg:
+    #             c2w_updated = self.video.get_pose(keyframe_idx, self.device)
+    #             w2c_updated = torch.linalg.inv(c2w_updated)
+    #             depth_updated = None
+    #             invalid = False
+    #         else:
+    #             metric_depth = load_metric_depth(frame_idx, self.save_dir).to(
+    #                 self.device
+    #             )
+    #             depth_updated, w2c_updated, invalid = self.get_w2c_and_depth(
+    #                 keyframe_idx, frame_idx, metric_depth
+    #             )
+
+    #         # Get old pose
+    #         w2c_old = torch.eye(4, device=self.device)
+    #         w2c_old[:3, :3] = self.cameras[keyframe_idx].R
+    #         w2c_old[:3, 3] = self.cameras[keyframe_idx].T
+
+    #         pose_unchanged = torch.allclose(w2c_old, w2c_updated, atol=1e-6)
+    #         if pose_unchanged and depth_updated is None:
+    #             continue
+
+    #         # Update camera
+    #         self.cameras[keyframe_idx].update_RT(
+    #             w2c_updated[:3, :3], w2c_updated[:3, 3]
+    #         )
+    #         if depth_updated is not None:
+    #             self.cameras[keyframe_idx].depth = depth_updated.cpu().numpy()
+    #             self.depth_dict[keyframe_idx] = depth_updated
+
+    #         # Update viewpoint if it exists
+    #         if self.is_kf[keyframe_idx]:
+    #             self.cameras[keyframe_idx].update_RT(
+    #                 w2c_updated[:3, :3], w2c_updated[:3, 3]
+    #             )
+    #             if depth_updated is not None:
+    #                 self.cameras[keyframe_idx].depth = depth_updated.cpu().numpy()
+
+    #         # Update mapping parameters
+    #         if self.deform_gaussians and self.is_kf[keyframe_idx]:
+    #             if invalid or depth_updated is None:
+    #                 self._update_mapping_points(
+    #                     keyframe_idx,
+    #                     w2c_updated,
+    #                     w2c_old,
+    #                     depth_updated,
+    #                     self.depth_dict[keyframe_idx],
+    #                     method="rigid",
+    #                 )
+    #             else:
+    #                 self._update_mapping_points(
+    #                     keyframe_idx,
+    #                     w2c_updated,
+    #                     w2c_old,
+    #                     depth_updated,
+    #                     self.depth_dict[keyframe_idx],
+    #                 )
+    
     def _get_viewpoint(self, video_idx: int, frame_idx: int) -> Tuple[Camera, bool]:
         """
-        Create and initialize a Camera object for a given frame.
+        Create and initialize a Camera object for a given keyframe.
 
-        Args:
-            video_idx (int): Index in the video class (keyframe idx).
-            frame_idx (int): Index in the original frame sequences.
-
-        Returns:
-            Tuple[Camera, bool]: Initialized Camera object and an invalid flag.
+        - DROID: color comes from dataset; depth/pose from DepthVideo (and optional mono prior on disk)
+        - DPV:   color comes from dataset; depth/pose from PatchGraph mapper buffers (depth already appended by tracker)
+                IMPORTANT: In DPV mode we DO NOT load metric depth from disk here.
         """
-        # Load color image based on resolution configuration
+        # -------------------------
+        # Color (unchanged)
+        # -------------------------
         if self.config["mapping"]["full_resolution"]:
-            color = (
-                self.frame_reader.get_color_full_resol(frame_idx)
-                .to(self.device)
-                .squeeze()
-            )
+            color = self.frame_reader.get_color_full_resol(frame_idx).to(self.device).squeeze()
             load_feature_suffix = "full"
         else:
             color = self.frame_reader.get_color(frame_idx).to(self.device).squeeze()
             load_feature_suffix = ""
 
-        # Load metric depth
-        metric_depth = load_metric_depth(frame_idx, self.save_dir).to(self.device)
-
-        # Load features if uncertainty-aware
+        # -------------------------
+        # Features (unchanged)
+        # -------------------------
         if self.uncertainty_aware:
-            features = load_img_feature(
-                frame_idx, self.save_dir, suffix=load_feature_suffix
-            ).to(self.device)
+            features = load_img_feature(frame_idx, self.save_dir, suffix=load_feature_suffix).to(self.device)
         else:
             features = None
 
-        # Get estimated depth and camera pose
+        # -------------------------
+        # Depth + pose from frontend buffers (DepthVideo / PatchGraph)
+        #
+        # mono_depth is ONLY needed for the ablation path (metric_depth_reg=False),
+        # which is a DROID thing; DPV should always have metric_depth_reg=True.
+        # -------------------------
+        metric_depth = None
+        if not getattr(self.video, "metric_depth_reg", True):
+            # only for no-metric-depth-reg ablation
+            metric_depth = load_metric_depth(frame_idx, self.save_dir).to(self.device)
+
         est_depth, est_w2c, invalid = self.get_w2c_and_depth(
-            video_idx, frame_idx, metric_depth
+            video_idx=video_idx,
+            idx=frame_idx,
+            mono_depth=metric_depth
         )
 
-        # Prepare data dictionary for Camera initialization
         camera_data = {
             "idx": video_idx,
             "gt_color": color,
-            "est_depth": est_depth.cpu().numpy(),
-            "est_pose": est_w2c,
+            "est_depth": est_depth.detach().cpu().numpy(),
+            "est_pose": est_w2c,   # 4x4 torch
             "features": features,
         }
 
-        # Initialize Camera object
         viewpoint = Camera.init_from_dataset(
             self.frame_reader,
             camera_data,
@@ -354,9 +718,7 @@ class Mapper(object):
             full_resol=self.config["mapping"]["full_resolution"],
         )
 
-        # Update camera pose and compute gradient mask
-        # The Camera class is based on MonoGS and
-        # init_from_dataset function only updates the ground truth pose
+        # MonoGS convention: init_from_dataset sets GT pose, so we overwrite with estimated pose
         viewpoint.update_RT(viewpoint.R_gt, viewpoint.T_gt)
         viewpoint.compute_grad_mask(self.config)
 
@@ -365,25 +727,28 @@ class Mapper(object):
     def _update_keyframes_from_frontend(self):
         """
         Update keyframe information based on the latest frontend data.
-        This includes updating camera poses, depths, and mapping points (deform gaussians)
-        for all keyframes.
+
+        DROID (metric_depth_reg=True): update pose only (WildGS default)
+        DROID (metric_depth_reg=False): may update depth too via get_w2c_and_depth()
+        DPV: update pose only (depth is metric & fixed per appended keyframe)
         """
         for keyframe_idx, frame_idx in zip(self.video_idxs, self.frame_idxs):
-            # Get updated pose and depth
-            if self.video.metric_depth_reg:
+
+            if getattr(self.video, "metric_depth_reg", True):
+                # pose-only refresh
                 c2w_updated = self.video.get_pose(keyframe_idx, self.device)
                 w2c_updated = torch.linalg.inv(c2w_updated)
                 depth_updated = None
                 invalid = False
+
             else:
-                metric_depth = load_metric_depth(frame_idx, self.save_dir).to(
-                    self.device
-                )
+                # ablation path only (keep original behavior)
+                metric_depth = load_metric_depth(frame_idx, self.save_dir).to(self.device)
                 depth_updated, w2c_updated, invalid = self.get_w2c_and_depth(
                     keyframe_idx, frame_idx, metric_depth
                 )
 
-            # Get old pose
+            # old pose from stored camera
             w2c_old = torch.eye(4, device=self.device)
             w2c_old[:3, :3] = self.cameras[keyframe_idx].R
             w2c_old[:3, 3] = self.cameras[keyframe_idx].T
@@ -392,24 +757,22 @@ class Mapper(object):
             if pose_unchanged and depth_updated is None:
                 continue
 
-            # Update camera
-            self.cameras[keyframe_idx].update_RT(
-                w2c_updated[:3, :3], w2c_updated[:3, 3]
-            )
+            # update camera pose
+            self.cameras[keyframe_idx].update_RT(w2c_updated[:3, :3], w2c_updated[:3, 3])
+
+            # update depth if needed
             if depth_updated is not None:
-                self.cameras[keyframe_idx].depth = depth_updated.cpu().numpy()
+                self.cameras[keyframe_idx].depth = depth_updated.detach().cpu().numpy()
                 self.depth_dict[keyframe_idx] = depth_updated
 
-            # Update viewpoint if it exists
-            if self.is_kf[keyframe_idx]:
-                self.cameras[keyframe_idx].update_RT(
-                    w2c_updated[:3, :3], w2c_updated[:3, 3]
-                )
+            # update viewpoint if it exists
+            if self.is_kf.get(keyframe_idx, False):
+                self.cameras[keyframe_idx].update_RT(w2c_updated[:3, :3], w2c_updated[:3, 3])
                 if depth_updated is not None:
-                    self.cameras[keyframe_idx].depth = depth_updated.cpu().numpy()
+                    self.cameras[keyframe_idx].depth = depth_updated.detach().cpu().numpy()
 
-            # Update mapping parameters
-            if self.deform_gaussians and self.is_kf[keyframe_idx]:
+            # deform gaussians logic (unchanged)
+            if self.deform_gaussians and self.is_kf.get(keyframe_idx, False):
                 if invalid or depth_updated is None:
                     self._update_mapping_points(
                         keyframe_idx,
@@ -571,18 +934,112 @@ class Mapper(object):
                 render_pkg["n_touched"] > 0
             ).long()
 
-    def get_w2c_and_depth(self, video_idx, idx, mono_depth, print_info=False):
-        est_frontend_depth, valid_depth_mask, c2w = self.video.get_depth_and_pose(
-            video_idx, self.device
-        )
+    # def get_w2c_and_depth(self, video_idx, idx, mono_depth, print_info=False):
+    #     est_frontend_depth, valid_depth_mask, c2w = self.video.get_depth_and_pose(
+    #         video_idx, self.device
+    #     )
+    #     c2w = c2w.to(self.device)
+    #     w2c = torch.linalg.inv(c2w)
+
+    #     if self.video.metric_depth_reg:
+    #         return est_frontend_depth, w2c, False
+
+    #     # The following is only useful when no metric depth used for tracking regularization
+    #     # Code is from Splat-SLAM
+    #     if print_info:
+    #         self.printer.print(
+    #             f"valid depth number: {valid_depth_mask.sum().item()}, "
+    #             f"valid depth ratio: {(valid_depth_mask.sum()/(valid_depth_mask.shape[0]*valid_depth_mask.shape[1])).item()}",
+    #             FontColor.MAPPER
+    #         )
+
+    #     if valid_depth_mask.sum() < 100:
+    #         invalid = True
+    #         self.printer.print(
+    #             f"Skip mapping frame {idx} at video idx {video_idx} because of not enough valid depth ({valid_depth_mask.sum()}).", FontColor.MAPPER
+    #         )
+    #     else:
+    #         invalid = False
+
+    #     est_frontend_depth[~valid_depth_mask] = 0
+    #     if not invalid:
+    #         mono_depth[mono_depth > 4 * mono_depth.mean()] = 0
+    #         mono_depth = mono_depth.cpu().numpy()
+    #         binary_image = (mono_depth > 0).astype(int)
+    #         # Add padding around the binary_image to protect the borders
+    #         iterations = 5
+    #         padded_binary_image = np.pad(
+    #             binary_image, pad_width=iterations, mode="constant", constant_values=1
+    #         )
+    #         structure = np.ones((3, 3), dtype=int)
+    #         # Apply binary erosion with padding
+    #         eroded_padded_image = binary_erosion(
+    #             padded_binary_image, structure=structure, iterations=iterations
+    #         )
+    #         # Remove padding after erosion
+    #         eroded_image = eroded_padded_image[
+    #             iterations:-iterations, iterations:-iterations
+    #         ]
+    #         # set mono depth to zero at mask
+    #         mono_depth[eroded_image == 0] = 0
+
+    #         if (mono_depth == 0).sum() > 0:
+    #             mono_depth = torch.from_numpy(
+    #                 cv2.inpaint(
+    #                     mono_depth,
+    #                     (mono_depth == 0).astype(np.uint8),
+    #                     inpaintRadius=3,
+    #                     flags=cv2.INPAINT_NS,
+    #                 )
+    #             ).to(self.device)
+    #         else:
+    #             mono_depth = torch.from_numpy(mono_depth).to(self.device)
+
+    #         valid_mask = (
+    #             torch.from_numpy(eroded_image).to(self.device) * valid_depth_mask
+    #         )  # new
+
+    #         cur_wq = self.video.get_depth_scale_and_shift(
+    #             video_idx, mono_depth, est_frontend_depth, valid_mask
+    #         )
+    #         mono_depth_wq = mono_depth * cur_wq[0] + cur_wq[1]
+
+    #         est_frontend_depth[~valid_depth_mask] = mono_depth_wq[~valid_depth_mask]
+
+    #     return est_frontend_depth, w2c, invalid
+
+    def get_w2c_and_depth(self, video_idx, idx, mono_depth=None, print_info=False):
+        """
+        Unifies DepthVideo (DROID) and PatchGraph (DPV) access.
+
+        Returns:
+            est_depth (H,W) torch
+            w2c (4,4) torch
+            invalid (bool)
+
+        Notes:
+        - If self.video.metric_depth_reg is True:
+            * We trust est_frontend_depth directly.
+            * No mono_depth fusion happens.
+        - The "mono_depth inpaint + scale/shift" path is only for the ablation
+        where tracking does NOT use metric depth regularization.
+        """
+        est_frontend_depth, valid_depth_mask, c2w = self.video.get_depth_and_pose(video_idx, self.device)
         c2w = c2w.to(self.device)
         w2c = torch.linalg.inv(c2w)
 
-        if self.video.metric_depth_reg:
+        # Standard path (this is what you want for DPV, and also default WildGS)
+        if getattr(self.video, "metric_depth_reg", True):
+            # In DPV, valid_depth_mask is typically (depth>0); keep it consistent.
             return est_frontend_depth, w2c, False
 
-        # The following is only useful when no metric depth used for tracking regularization
-        # Code is from Splat-SLAM
+        # ------------------------------------------------------------------
+        # Ablation-only path: no metric depth used for tracking regularization
+        # (this is from Splat-SLAM; keep DROID behavior unchanged)
+        # ------------------------------------------------------------------
+        if mono_depth is None:
+            raise ValueError("mono_depth must be provided when metric_depth_reg is False")
+
         if print_info:
             self.printer.print(
                 f"valid depth number: {valid_depth_mask.sum().item()}, "
@@ -1514,42 +1971,78 @@ class Mapper(object):
 
         # Make the plot
         # Determine Plot Aspect Ratio
-        aspect_ratio = gt_image.shape[2] / gt_image.shape[1]
-        fig_height = 8
-        fig_width = 11
-        fig_width = fig_width * aspect_ratio
+        # aspect_ratio = gt_image.shape[2] / gt_image.shape[1]
+        # fig_height = 8
+        # fig_width = 11
+        # fig_width = fig_width * aspect_ratio
 
-        # Plot the Ground Truth and Rasterized RGB & Depth, along with Diff Depth & Silhouette
-        fig, axs = plt.subplots(2, 4, figsize=(fig_width, fig_height))
-        axs[0, 0].imshow(gt_image.cpu().permute(1, 2, 0))
-        axs[0, 0].set_title("Ground Truth RGB", fontsize=16)
-        axs[0, 1].imshow(gt_depth, cmap='jet', vmin=0, vmax=depth_max)
-        axs[0, 1].set_title(f"Metric Depth, vmax:{depth_max:.2f}", fontsize=16)
-        axs[1, 0].imshow(rendered_img.cpu().permute(1, 2, 0))
-        axs[1, 0].set_title("Rendered RGB, PSNR: {:.2f}".format(psnr_score.item()), fontsize=16)
-        axs[1, 1].imshow(rendered_depth[0, :, :].cpu(), cmap='jet', vmin=0, vmax=depth_max)
-        axs[1, 1].set_title("Rendered Depth, L1: {:.2f}".format(depth_l1), fontsize=16)
-        axs[0, 2].imshow(diff_rgb, cmap='jet', vmin=0, vmax=diff_rgb.max())
-        axs[0, 2].set_title(f"Diff RGB L1, vmax:{diff_rgb.max():.2f}", fontsize=16)
-        axs[1, 2].imshow(diff_depth_l1, cmap='jet', vmin=0, vmax=depth_max/5.0)
-        axs[1, 2].set_title(f"Diff Depth L1, vmax:{depth_max/5.0:.2f}", fontsize=16)
-        axs[0, 3].imshow(uncertainty_map, cmap='jet', vmin=0, vmax=5)
-        axs[0, 3].set_title("Uncertainty", fontsize=16)
-        axs[1, 3].imshow(ssim_loss, cmap='jet', vmin=0, vmax=5)
-        axs[1, 3].set_title("ssim_loss", fontsize=16)
+        # # Plot the Ground Truth and Rasterized RGB & Depth, along with Diff Depth & Silhouette
+        # fig, axs = plt.subplots(2, 4, figsize=(fig_width, fig_height))
+        # axs[0, 0].imshow(gt_image.cpu().permute(1, 2, 0))
+        # axs[0, 0].set_title("Ground Truth RGB", fontsize=16)
+        # axs[0, 1].imshow(gt_depth, cmap='jet', vmin=0, vmax=depth_max)
+        # axs[0, 1].set_title(f"Metric Depth, vmax:{depth_max:.2f}", fontsize=16)
+        # axs[1, 0].imshow(rendered_img.cpu().permute(1, 2, 0))
+        # axs[1, 0].set_title("Rendered RGB, PSNR: {:.2f}".format(psnr_score.item()), fontsize=16)
+        # axs[1, 1].imshow(rendered_depth[0, :, :].cpu(), cmap='jet', vmin=0, vmax=depth_max)
+        # axs[1, 1].set_title("Rendered Depth, L1: {:.2f}".format(depth_l1), fontsize=16)
+        # axs[0, 2].imshow(diff_rgb, cmap='jet', vmin=0, vmax=diff_rgb.max())
+        # axs[0, 2].set_title(f"Diff RGB L1, vmax:{diff_rgb.max():.2f}", fontsize=16)
+        # axs[1, 2].imshow(diff_depth_l1, cmap='jet', vmin=0, vmax=depth_max/5.0)
+        # axs[1, 2].set_title(f"Diff Depth L1, vmax:{depth_max/5.0:.2f}", fontsize=16)
+        # axs[0, 3].imshow(uncertainty_map, cmap='jet', vmin=0, vmax=5)
+        # axs[0, 3].set_title("Uncertainty", fontsize=16)
+        # axs[1, 3].imshow(ssim_loss, cmap='jet', vmin=0, vmax=5)
+        # axs[1, 3].set_title("ssim_loss", fontsize=16)
         
-        for i in range(2):
-            for j in range(4):
-                axs[i, j].axis('off')
-                axs[i, j].grid(False)
+        # for i in range(2):
+        #     for j in range(4):
+        #         axs[i, j].axis('off')
+        #         axs[i, j].grid(False)
 
+        # frame_idx = int(self.video.timestamp[keyframe_idx])
+        # fig.suptitle(f"Key Frame idx ({keyframe_idx}), Frame idx ({frame_idx}), Plot{suffix}", y=0.95, fontsize=20)
+        # fig.tight_layout()
+
+        # os.makedirs(plot_dir, exist_ok=True)
+        # save_path = os.path.join(plot_dir, f"video_idx_{keyframe_idx}_kf_idx_{frame_idx}{suffix}.png")
+        # plt.savefig(save_path, bbox_inches='tight')
+        # plt.close()
+        
+        aspect_ratio = gt_image.shape[2] / gt_image.shape[1]
+        fig_height = 5
+        fig_width = 10 * aspect_ratio
+
+        fig, axs = plt.subplots(1, 2, figsize=(fig_width, fig_height))
+
+        # Ground Truth RGB
+        axs[0].imshow(gt_image.cpu().permute(1, 2, 0))
+        axs[0].set_title("Ground Truth RGB", fontsize=16)
+        axs[0].axis("off")
+        axs[0].grid(False)
+
+        # Rendered RGB
+        axs[1].imshow(rendered_img.cpu().permute(1, 2, 0))
+        axs[1].set_title("Rendered RGB, PSNR: {:.2f}".format(psnr_score.item()), fontsize=16)
+        axs[1].axis("off")
+        axs[1].grid(False)
+
+        # Suptitle with frame info
         frame_idx = int(self.video.timestamp[keyframe_idx])
-        fig.suptitle(f"Key Frame idx ({keyframe_idx}), Frame idx ({frame_idx}), Plot{suffix}", y=0.95, fontsize=20)
+        fig.suptitle(
+            f"Key Frame idx ({keyframe_idx}), Frame idx ({frame_idx}), Plot{suffix}",
+            y=0.98,
+            fontsize=18,
+        )
+
         fig.tight_layout()
 
         os.makedirs(plot_dir, exist_ok=True)
-        save_path = os.path.join(plot_dir, f"video_idx_{keyframe_idx}_kf_idx_{frame_idx}{suffix}.png")
-        plt.savefig(save_path, bbox_inches='tight')
+        save_path = os.path.join(
+            plot_dir,
+            f"video_idx_{keyframe_idx}_kf_idx_{frame_idx}{suffix}.png"
+        )
+        plt.savefig(save_path, bbox_inches="tight")
         plt.close()
 
     def save_all_kf_figs(

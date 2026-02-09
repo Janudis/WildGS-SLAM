@@ -1,0 +1,28 @@
+inherit_from: ./configs/wildgs_slam.yaml
+scene: KITTI_seq00_0_1000
+
+dataset: 'wild_slam_iphone'   # no GT poses, monocular RGB only
+
+# fast_mode: True
+# gui: True
+# mapping:
+#   online_plotting: True
+  
+data:
+  input_folder: ./datasets/KITTI_seq00_0_1000
+  output: ./output/KITTI_seq00_0_1000
+
+cam:
+  H: 376        # height
+  W: 1241        # width
+
+  # Intrinsics from your Photo-SLAM Mega-NeRF config
+  fx: 718.856000
+  fy: 718.856000
+  cx: 607.192800
+  cy: 185.215700
+
+  # # Working resolution for WildGS (downsampled for memory)
+  # Make these EXACT multiples of 8
+  H_out: 184    # 23 * 8
+  W_out: 616    # 77 * 8

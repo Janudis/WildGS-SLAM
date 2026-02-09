@@ -2,10 +2,14 @@ inherit_from: ./configs/Dynamic/Wild_SLAM_Mocap/wild_slam_mocap.yaml
 scene: crowd_demo
 
 fast_mode: True
-gui: True
-mapping:
-  online_plotting: True
+# gui: True
+# mapping:
+#   online_plotting: True
 
 data:
   input_folder: ROOT_FOLDER_PLACEHOLDER/scene1/crowd
-  output: ./output/Wild_SLAM_Mocap_demo
+  output: ./output/Wild_SLAM_Mocap_demo_GS_wo_uncertainty
+
+cam:
+  H_out: 240
+  W_out: 400

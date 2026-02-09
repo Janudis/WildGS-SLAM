@@ -31,7 +31,7 @@ mapping:
     gaussian_extent: 1.0 # used in densify and prune. We prune points with larger 3d scale than 0.1 * gaussian_extent
     gaussian_reset: 20001
     size_threshold: 20 # used in densify and prune. We prune points that have a larger radius than 20 in screen space
-    window_size: 10
+    window_size: 6 #10
     edge_threshold: 4
     rgb_boundary_threshold: 0.01
     spherical_harmonics: False # kept for reference, but not tested when True
@@ -62,7 +62,7 @@ mapping:
     compute_cov3D_python: False
 
   uncertainty_params:
-    activate: True
+    activate: False
     vis_uncertainty_online: False
     feature_dim: 384
     feature_type: "dino"
@@ -80,6 +80,19 @@ mapping:
     weight_decay: 0.00001
 
 tracking:
+  tracker_type: droid #dpvo #droid
+  dpvo:
+    weights: ./pretrained/dpvo.pth
+    opts:
+      BUFFER_SIZE: 350
+      PATCHES_PER_FRAME: 80        # 80 -> 40
+      OPTIMIZATION_WINDOW: 12       # 12 -> 8
+      REMOVAL_WINDOW: 20           # 20 -> 12
+      PATCH_LIFETIME: 12            # add this (default was 12)
+      KEYFRAME_THRESH: 12.5
+      LOOP_CLOSURE: False
+      MIXED_PRECISION: True
+    
   pretrained: ./pretrained/droid.pth
   buffer: 350     # maximum number of keyframes that can be stored
   beta: 0.75      # beta * Distance(R|t) + (1-beta) * Distance(I|t), refer to droid_kernels.cu:frame_distance_kernel
@@ -118,7 +131,7 @@ tracking:
     metric_depth_reg: True # whether to use metric depth to guide disparity in BA, always set to True
     normalize: False    # whether to normalize disps after each BA iter
   uncertainty_params:
-    activate: True
+    activate: False
   force_keyframe_every_n_frames: 9 # set to negative value if you don't want to force to insert keyframes
   nb_ref_frame_metric_depth_filtering: 6 # number of reference frames for filtering high uncertainty metric depth points
 
