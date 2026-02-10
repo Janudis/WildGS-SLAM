@@ -1418,7 +1418,7 @@ class Mapper(object):
                     image,
                     depth,
                     viewpoint,
-                    opacity,
+                    # opacity, #no needed a bug of WildGS
                     initialization=True,
                 )
             else:
@@ -1572,7 +1572,8 @@ class Mapper(object):
                 ).squeeze(0)
             if not self.uncertainty_aware:
                 loss_mapping += get_loss_mapping(
-                    self.config["mapping"], image, depth, viewpoint, opacity
+                    self.config["mapping"], image, depth, viewpoint, 
+                    # opacity # no needed a bug of WildGS
                 )
             else:
                 train_frac = self.uncer_params["train_frac_fix"]
@@ -1743,7 +1744,8 @@ class Mapper(object):
                 ).squeeze(0)
             if not self.uncertainty_aware:
                 loss_mapping += get_loss_mapping(
-                    self.config["mapping"], image, depth, viewpoint, opacity
+                    self.config["mapping"], image, depth, viewpoint, 
+                    #opacity # no needed a bug of WildGS
                 )
             else:
                 train_frac = self.uncer_params["train_frac_fix"]

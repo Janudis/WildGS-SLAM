@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import torch
-# from src.factor_graph import FactorGraph
+from src.factor_graph import FactorGraph
 from copy import deepcopy
 
 class Backend:

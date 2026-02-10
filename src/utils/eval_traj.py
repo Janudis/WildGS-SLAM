@@ -15,6 +15,11 @@ from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from src.utils.datasets import RGB_NoPose
 
+from src.dpvo.plot_utils import plot_trajectory
+from pathlib import Path
+from evo.core.trajectory import PoseTrajectory3D
+from evo.core import sync
+
 def align_kf_traj(npz_path,stream,return_full_est_traj=False,printer=None):
     offline_video = dict(np.load(npz_path))
     traj_ref = []
@@ -207,3 +212,102 @@ def save_traj(traj_est,output_file):
 
     with open(output_file, "w") as f:
         f.writelines(tum_poses)
+
+def _dpvo_pose7_to_se3(pose7):
+    """
+    pose7: [x y z qx qy qz qw]
+    returns 4x4 T (world->cam or cam->world depends on DPVO convention)
+    """
+    x, y, z, qx, qy, qz, qw = pose7
+    R = Rotation.from_quat([qx, qy, qz, qw]).as_matrix()
+    T = np.eye(4, dtype=np.float64)
+    T[:3, :3] = R
+    T[:3, 3] = [x, y, z]
+    return T
+
+def full_traj_eval_dpvo_stream(
+    dpvo_npz_path: str,
+    stream,
+    printer,
+    save_dir: str,
+    plot_name: str = "full_traj_dpvo",
+    do_plot: bool = True,
+    correct_scale: bool = True,
+    dpvo_pose_is_Twc: bool = True,
+):
+    """
+    Evaluate DPVO full trajectory against stream.poses (WildGS-style).
+    No TUM gt_file required.
+
+    Assumptions:
+    - dpvo_npz contains:
+        poses: (N,7) [x y z qx qy qz qw]
+        tstamps: (N,) timestamps (typically frame indices)
+    - stream.poses[t] is a 4x4 SE3 (same as used by align_full_traj / kf_traj_eval).
+
+    dpvo_pose_is_Twc:
+      True  => pose7 encodes T_wc (cam in world)
+      False => pose7 encodes T_cw (world in cam), we will invert.
+    """
+
+    Path(save_dir).mkdir(parents=True, exist_ok=True)
+
+    data = np.load(dpvo_npz_path)
+    poses7 = np.asarray(data["poses"])
+    tstamps = np.asarray(data["tstamps"])
+
+    if poses7.ndim != 2 or poses7.shape[1] != 7:
+        raise ValueError(f"Expected (N,7) [x y z qx qy qz qw], got {poses7.shape}")
+
+    # Filter finite
+    finite = np.isfinite(poses7).all(axis=1) & np.isfinite(tstamps)
+    poses7 = poses7[finite]
+    tstamps = tstamps[finite].astype(int)
+
+    # Build EST + REF lists using timestamps that exist in stream
+    traj_est = []
+    traj_ref = []
+    timestamps = []
+
+    max_idx = len(stream.poses) - 1
+    for pose7, t in zip(poses7, tstamps):
+        if t < 0 or t > max_idx:
+            continue
+        gt = stream.poses[t]
+        val = np.asarray(gt).sum()
+        if np.isnan(val) or np.isinf(val):
+            printer.print(f"Nan/Inf in GT pose, skip t={t}", FontColor.INFO)
+            continue
+
+        T = _dpvo_pose7_to_se3(pose7)
+        if not dpvo_pose_is_Twc:
+            T = np.linalg.inv(T)
+
+        traj_est.append(T)
+        traj_ref.append(gt)
+        timestamps.append(float(t))
+
+    if len(traj_est) < 2:
+        raise RuntimeError("Not enough valid DPVO poses to evaluate.")
+
+    traj_est_evo = PoseTrajectory3D(poses_se3=traj_est, timestamps=timestamps)
+    traj_ref_evo = PoseTrajectory3D(poses_se3=traj_ref, timestamps=timestamps)
+
+    traj_ref_evo, traj_est_evo = sync.associate_trajectories(traj_ref_evo, traj_est_evo)
+    traj_est_evo.align(traj_ref_evo, correct_scale=correct_scale)
+
+    # Reuse your existing plotting
+    if do_plot:
+        plot_file = str(Path(save_dir) / f"{plot_name}.pdf")
+        plot_trajectory(
+            pred_traj=traj_est_evo,
+            gt_traj=traj_ref_evo,
+            title=plot_name,
+            filename=plot_file,
+            align=False,               # already aligned above
+            correct_scale=correct_scale,
+        )
+
+    # Compute APE like you already do (optional: reuse traj_eval_and_plot)
+    ape_stats = traj_eval_and_plot(traj_est_evo, traj_ref_evo, save_dir, plot_name, printer)
+    return ape_stats

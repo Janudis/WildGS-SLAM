@@ -80,15 +80,15 @@ mapping:
     weight_decay: 0.00001
 
 tracking:
-  tracker_type: droid #dpvo #droid
+  tracker_type: dpvo #dpvo #droid
   dpvo:
     weights: ./pretrained/dpvo.pth
     opts:
-      BUFFER_SIZE: 350
-      PATCHES_PER_FRAME: 80        # 80 -> 40
-      OPTIMIZATION_WINDOW: 12       # 12 -> 8
-      REMOVAL_WINDOW: 20           # 20 -> 12
-      PATCH_LIFETIME: 12            # add this (default was 12)
+      BUFFER_SIZE: 350 # keep default = 4096
+      PATCHES_PER_FRAME: 80      
+      OPTIMIZATION_WINDOW: 12      
+      REMOVAL_WINDOW: 20          
+      PATCH_LIFETIME: 12        
       KEYFRAME_THRESH: 12.5
       LOOP_CLOSURE: False
       MIXED_PRECISION: True

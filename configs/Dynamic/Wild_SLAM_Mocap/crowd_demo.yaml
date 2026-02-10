@@ -8,7 +8,7 @@ fast_mode: True
 
 data:
   input_folder: ROOT_FOLDER_PLACEHOLDER/scene1/crowd
-  output: ./output/Wild_SLAM_Mocap_demo_GS_wo_uncertainty
+  output: ./output/Wild_SLAM_Mocap_demo_DPV_wo_uncertainty
 
 cam:
   H_out: 240

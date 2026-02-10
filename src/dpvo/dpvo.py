@@ -11,14 +11,10 @@ from .patchgraph import PatchGraph
 from .utils import *
 
 mp.set_start_method('spawn', True)
-
-
 autocast = torch.cuda.amp.autocast
 Id = SE3.Identity(1, device="cuda")
 
-
 class DPVO:
-
     def __init__(self, cfg, network, ht=480, wd=640, viz=False):
         self.cfg = cfg
         self.load_weights(network)
